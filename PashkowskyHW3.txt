@@ -1,0 +1,60 @@
+CLEARSCREEN.
+SET THROTTLE TO 1.0.
+
+WHEN SHIP:MAXTHRUST = 0 THEN {
+	STAGE.
+	PRESERVE.
+}.
+SET MYSTEER TO HEADING(90,90).
+LOCK STEERING TO MYSTEER.
+WAIT UNTIL STAGE:SOLIDFUEL < 0.1.
+STAGE.
+Local DesiredTarget is 75000.
+UNTIL SHIP:APOAPSIS > DesiredTarget {
+	local DesiredHeading is 90*(1-SHIP:ALTITUDE/DesiredTarget).
+	SET MYSTEER TO HEADING(90,DesiredHeading).
+}.
+UNTIL SHIP:PERIAPSIS > (DesiredTarget - 4000) {
+	IF SHIP:APOAPSIS > (DesiredTarget*1.01) {
+		SET MYSTEER TO HEADING(90,-2*(15+SHIP:APOAPSIS/DesiredTarget)).
+	} ELSE {
+       SET MYSTEER TO HEADING(90,-7).
+	}.
+}.
+SET THROTTLE TO 0.0.
+function absang {
+	parameter obt.
+	Return mod(obt:lan + obt:argumentofperiapsis + obt:trueanomaly, 360).
+}
+function norm {
+	parameter ang.
+	Return mod(ang, 360).
+}
+function ang_diff {
+	parameter a0.
+	parameter a1.
+	set a0 to norm(a0).
+	set a1 to norm(a1).
+	return mod(a0 - a1,360).
+}
+local mun_ang is absang(mun:orbit).
+local ship_ang is absang(ship:orbit).
+local burn_ang is norm(mun_ang + 235).
+local d_theta is ang_diff(burn_ang, ship_ang).
+local orbit_rate is ship:orbit:period / 360.
+local burn_time is d_theta * orbit_rate.
+print burn_time.
+Wait burn_time.
+SET MYSTEER TO HEADING(90,5).
+SET THROTTLE TO 1.0.
+UNTIL (SHIP:APOAPSIS - MUN:ORBIT:APOAPSIS) > 1000 {
+	SET THROTTLE TO 1.0.
+}
+UNTIL SHIP:ALTITUDE < 10000 {
+	SET THROTTLE TO 0.0.
+}
+UNTIL SHIP:VERTICALSPEED > -5 {
+	SET MYSTEER TO HEADING(90,90).
+       SET THROTTLE TO 1.0.
+}
+SET THROTTLE TO 0.0.
